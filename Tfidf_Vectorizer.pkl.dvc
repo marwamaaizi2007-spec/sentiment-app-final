@@ -1,0 +1,5 @@
+outs:
+- md5: ace7116d083e84fac3035fa2bde2ee9b
+  size: 576112
+  hash: md5
+  path: Tfidf_Vectorizer.pkl
