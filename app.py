@@ -16,7 +16,7 @@ st.set_page_config(
 # LOAD MODEL
 # ======================
 model = joblib.load("sentiment_model.pkl")
-vectorizer = joblib.load("tfidf_vectorizer.pkl")
+vectorizer = joblib.load("Tfidf_Vectorizer.pkl")
 
 # ======================
 # CLEAN FUNCTION
