@@ -113,11 +113,10 @@ if analyse:
             with col2:
                 st.error("😡 Avis NÉGATIF")
                 st.metric(
-                    label="Confiance",
-                    value=f"{confidence}%",
-                    delta="⬇️ Sentiment négatif détecté",
-                    delta_color="off"
-                )
+            label="Confiance",
+            value=f"{confidence}%"
+        )
+                st.markdown("⬇️ Sentiment négatif détecté")
                 st.progress(confidence_display)
 
         # ======================
