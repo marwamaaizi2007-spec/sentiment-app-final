@@ -35,11 +35,10 @@ def clean_text(text):
 # CONFIDENCE NORMALIZATION
 # ======================
 def normalize_confidence(decision_value):
-    # Sigmoid normalization: transforme n'importe quelle valeur en 0-100%
-    sigmoid = 1 / (1 + np.exp(-abs(decision_value)))
-    # Restreindre entre 50% et 99% pour plus de réalisme
-    confidence = 50 + (sigmoid - 0.5) * 98
-    return round(min(max(confidence, 50), 99), 1)
+    v = abs(float(decision_value)) * 3
+    sigmoid = 1 / (1 + np.exp(-v))
+    confidence = sigmoid * 100
+    return round(min(max(confidence, 51), 99), 1)
 
 # ======================
 # TITLE
