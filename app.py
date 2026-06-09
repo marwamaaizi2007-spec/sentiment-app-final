@@ -15,8 +15,13 @@ st.set_page_config(
 # ======================
 # LOAD MODEL
 # ======================
-model = joblib.load("sentiment_model.pkl")
-vectorizer = joblib.load("Tfidf_Vectorizer.pkl")
+@st.cache_resource
+def load_model():
+    model = joblib.load("sentiment_model.pkl")
+    vectorizer = joblib.load("Tfidf_Vectorizer.pkl")
+    return model, vectorizer
+
+model, vectorizer = load_model()
 
 # ======================
 # CLEAN FUNCTION
@@ -25,6 +30,16 @@ def clean_text(text):
     text = text.lower()
     text = re.sub(r'[^a-zA-Z\s]', '', text)
     return text
+
+# ======================
+# CONFIDENCE NORMALIZATION
+# ======================
+def normalize_confidence(decision_value):
+    # Sigmoid normalization: transforme n'importe quelle valeur en 0-100%
+    sigmoid = 1 / (1 + np.exp(-abs(decision_value)))
+    # Restreindre entre 50% et 99% pour plus de réalisme
+    confidence = 50 + (sigmoid - 0.5) * 98
+    return round(min(max(confidence, 50), 99), 1)
 
 # ======================
 # TITLE
@@ -43,20 +58,17 @@ col1, col2 = st.columns([2, 1])
 # INPUT
 # ======================
 with col1:
-
     avis = st.text_area(
         "✍️ Entrez votre avis",
         placeholder="Exemple : Ce produit est incroyable, livraison rapide et excellente qualité.",
         height=220
     )
-
-    analyse = st.button("🔍 Analyser le sentiment")
+    analyse = st.button("🔍 Analyser le sentiment", use_container_width=True)
 
 # ======================
 # RESULT SECTION
 # ======================
 with col2:
-
     st.subheader("📊 Résultat")
 
 # ======================
@@ -66,9 +78,8 @@ if analyse:
 
     if avis.strip() == "":
         st.warning("⚠️ Veuillez entrer un texte.")
-    
-    else:
 
+    else:
         # CLEAN
         cleaned = clean_text(avis)
 
@@ -78,46 +89,36 @@ if analyse:
         # PREDICTION
         prediction = model.predict(avis_vec)[0]
 
-        # ======================
-        # CONFIDENCE SCORE (SVM)
-        # ======================
+        # CONFIDENCE SCORE (SVM sigmoid normalisé)
         decision = model.decision_function(avis_vec)
-
-        confidence = round(abs(decision[0]) * 100, 2)
-
-        # LIMIT DISPLAY
-        confidence_display = min(int(confidence), 100)
+        confidence = normalize_confidence(decision[0])
+        confidence_display = int(confidence) / 100
 
         # ======================
         # POSITIVE
         # ======================
         if prediction == 1 or prediction == "positive":
-
             with col2:
-
                 st.success("😊 Avis POSITIF")
-
                 st.metric(
                     label="Confiance",
-                    value=f"{confidence}%"
+                    value=f"{confidence}%",
+                    delta="Sentiment positif détecté"
                 )
-
                 st.progress(confidence_display)
 
         # ======================
         # NEGATIVE
         # ======================
         else:
-
             with col2:
-
                 st.error("😡 Avis NÉGATIF")
-
                 st.metric(
                     label="Confiance",
-                    value=f"{confidence}%"
+                    value=f"{confidence}%",
+                    delta="Sentiment négatif détecté",
+                    delta_color="inverse"
                 )
-
                 st.progress(confidence_display)
 
         # ======================
@@ -125,22 +126,23 @@ if analyse:
         # ======================
         st.divider()
 
-        with st.expander("📈 Détails du modèle"):
+        with st.expander("📈 Détails de l'analyse"):
+            detail_col1, detail_col2 = st.columns(2)
 
-            st.write("🔹 Algorithme : SVM (LinearSVC)")
-            st.write("🔹 Feature Extraction : TF-IDF")
-            st.write("🔹 Type : Classification binaire")
-            st.write(f"🔹 Longueur du texte : {len(avis)} caractères")
+            with detail_col1:
+                st.write("🔹 **Algorithme :** SVM (LinearSVC)")
+                st.write("🔹 **Feature Extraction :** TF-IDF")
+                st.write("🔹 **Type :** Classification binaire")
 
-            st.text_area(
-                "Texte analysé",
-                avis,
-                height=150
-            )
+            with detail_col2:
+                st.write(f"🔹 **Longueur du texte :** {len(avis)} caractères")
+                st.write(f"🔹 **Nombre de mots :** {len(avis.split())}")
+                st.write(f"🔹 **Score brut SVM :** {round(float(decision[0]), 4)}")
+
+            st.text_area("Texte analysé", avis, height=100)
 
 # ======================
 # FOOTER
 # ======================
 st.divider()
-
 st.caption("Projet PFE - Analyse des sentiments avec Machine Learning")
