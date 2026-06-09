@@ -115,8 +115,8 @@ if analyse:
                 st.metric(
                     label="Confiance",
                     value=f"{confidence}%",
-                    delta="Sentiment négatif détecté",
-                    delta_color="inverse"
+                    delta="⬇️ Sentiment négatif détecté",
+                    delta_color="off"
                 )
                 st.progress(confidence_display)
 
