@@ -347,12 +347,13 @@ elif page == "📈 Statistiques & EDA":
 
         st.subheader("📋 Résumé statistique")
         stats_df = pd.DataFrame({
-    'Métrique': ['count', 'mean', 'min', 'max'],
-    'Score': [525814, 4.18, 1, 5],
-    'HelpfulnessNumerator': [525814, 1.74, 0, 866],
-    'HelpfulnessDenominator': [525814, 2.17, 0, 923]
-})
-st.dataframe(stats_df, use_container_width=True)
+            'Métrique': ['count', 'mean', 'min', 'max'],
+            'Score': [525814, 4.18, 1, 5],
+            'HelpfulnessNumerator': [525814, 1.74, 0, 866],
+            'HelpfulnessDenominator': [525814, 2.17, 0, 923]
+        })
+        st.dataframe(stats_df, use_container_width=True)
+
     with tab2:
         st.subheader("Évolution annuelle des avis")
         yearly = df.groupby(['Year','Classe']).size().unstack(fill_value=0)
