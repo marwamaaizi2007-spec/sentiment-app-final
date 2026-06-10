@@ -16,7 +16,33 @@ st.set_page_config(
     page_icon="💬",
     layout="wide"
 )
+# ======================
+# LOGIN
+# ======================
+def check_login():
+    if 'logged_in' not in st.session_state:
+        st.session_state.logged_in = False
 
+    if not st.session_state.logged_in:
+        st.title("🔐 Connexion")
+        st.markdown("Veuillez vous connecter pour accéder au dashboard.")
+        st.divider()
+
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            username = st.text_input("👤 Nom d'utilisateur")
+            password = st.text_input("🔒 Mot de passe", type="password")
+            login_btn = st.button("Se connecter", use_container_width=True)
+
+            if login_btn:
+                if username == "marwayasmine" and password == "pfe":
+                    st.session_state.logged_in = True
+                    st.rerun()
+                else:
+                    st.error("❌ Nom d'utilisateur ou mot de passe incorrect")
+        st.stop()
+
+check_login()
 # ======================
 # CUSTOM CSS
 # ======================
@@ -320,9 +346,13 @@ elif page == "📈 Statistiques & EDA":
             st.pyplot(fig)
 
         st.subheader("📋 Résumé statistique")
-        st.dataframe(df[['Score','HelpfulnessNumerator','HelpfulnessDenominator']].describe().round(2),
-                     use_container_width=True)
-
+        stats_df = pd.DataFrame({
+    'Métrique': ['count', 'mean', 'min', 'max'],
+    'Score': [525814, 4.18, 1, 5],
+    'HelpfulnessNumerator': [525814, 1.74, 0, 866],
+    'HelpfulnessDenominator': [525814, 2.17, 0, 923]
+})
+st.dataframe(stats_df, use_container_width=True)
     with tab2:
         st.subheader("Évolution annuelle des avis")
         yearly = df.groupby(['Year','Classe']).size().unstack(fill_value=0)
