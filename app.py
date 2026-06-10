@@ -219,9 +219,11 @@ elif page == "🔍 Analyser un avis":
             st.warning("⚠️ Veuillez entrer un texte.")
         else:
             cleaned = clean_text(avis)
+            word_count = len(cleaned.split())
             X_text = vectorizer.transform([cleaned])
-            prediction = model.predict(X_text)[0]
-
+            num_features = csr_matrix([[1, 1, 0.5, word_count]])
+            X = hstack([X_text, num_features])
+            prediction = model.predict(X)[0]
             with col2:
                 if prediction == 'Normale':
                     st.success("🟢 Commande NORMALE")
