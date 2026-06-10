@@ -12,28 +12,26 @@ from scipy.sparse import hstack, csr_matrix
 # PAGE CONFIG
 # ======================
 st.set_page_config(
-    page_title="E-Réputation Dashboard",
-    page_icon="💬",
+    page_title="SentiScan",
+    page_icon="🔍",
     layout="wide"
 )
+
 # ======================
 # LOGIN
 # ======================
 def check_login():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
-
     if not st.session_state.logged_in:
-        st.title("🔐 Connexion")
+        st.title("🔐 Connexion — SentiScan")
         st.markdown("Veuillez vous connecter pour accéder au dashboard.")
         st.divider()
-
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             username = st.text_input("👤 Nom d'utilisateur")
             password = st.text_input("🔒 Mot de passe", type="password")
             login_btn = st.button("Se connecter", use_container_width=True)
-
             if login_btn:
                 if username == "marwayasmine" and password == "pfe":
                     st.session_state.logged_in = True
@@ -43,6 +41,7 @@ def check_login():
         st.stop()
 
 check_login()
+
 # ======================
 # CUSTOM CSS
 # ======================
@@ -50,10 +49,7 @@ st.markdown("""
 <style>
 [data-testid="stSidebar"] {background-color: #1a1a2e;}
 [data-testid="stSidebar"] * {color: white !important;}
-.metric-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    padding: 20px; border-radius: 12px; text-align: center; color: white;
-}
+.metric-card {padding: 20px; border-radius: 12px; text-align: center; color: white;}
 .metric-card h2 {font-size: 2.2rem; margin: 0; font-weight: 700;}
 .metric-card p {margin: 0; opacity: 0.85; font-size: 0.9rem;}
 .nor-card {background: linear-gradient(135deg, #11998e, #38ef7d);}
@@ -64,7 +60,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ======================
-# LOAD MODEL & DATA
+# LOAD MODEL
 # ======================
 @st.cache_resource
 def load_model():
@@ -74,15 +70,14 @@ def load_model():
 
 @st.cache_data
 def load_data():
-    # Statistiques pré-calculées du dataset
-    data = {
-        'Classe': ['Normale']*363122 + ['Risque']*80655 + ['Critique']*52268,
-        'Score':  [5]*363122 + [4]*80655 + [2]*29769 + [1]*22499,
-        'Year':   [2012]*150000 + [2011]*200000 + [2010]*145814 + [2013]*420 + [2009]*9811
-    }
-    df = pd.DataFrame({'Classe': data['Classe'],
-                       'Score': data['Score'][:len(data['Classe'])],
-                       'Year': data['Year'][:len(data['Classe'])]})
+    data_classe = ['Normale']*363122 + ['Risque']*80655 + ['Critique']*52268
+    data_score  = [5]*363122 + [4]*80655 + [2]*29769 + [1]*22499
+    data_year   = [2012]*150000 + [2011]*200000 + [2010]*145814 + [2013]*420 + [2009]*9811
+    df = pd.DataFrame({
+        'Classe': data_classe,
+        'Score':  data_score[:len(data_classe)],
+        'Year':   data_year[:len(data_classe)]
+    })
     return df
 
 model, vectorizer = load_model()
@@ -98,18 +93,15 @@ def clean_text(text):
 
 def prepare_features(text):
     word_count = len(text.split())
-    helpfulness_ratio = 0.5
-    helpfulness_num = 1
-    helpfulness_den = 1
     X_text = vectorizer.transform([text])
-    num_features = csr_matrix([[helpfulness_num, helpfulness_den, helpfulness_ratio, word_count]])
+    num_features = csr_matrix([[1, 1, 0.5, word_count]])
     return hstack([X_text, num_features])
 
 # ======================
 # SIDEBAR
 # ======================
 with st.sidebar:
-    st.markdown("## 💬 E-Réputation")
+    st.markdown("## 🔍 SentiScan")
     st.markdown("---")
     page = st.radio("Navigation", [
         "🏠 Tableau de bord",
@@ -128,7 +120,10 @@ with st.sidebar:
     st.markdown(f"🟡 Risque : **{ris_pct}%**")
     st.markdown(f"🔴 Critique : **{cri_pct}%**")
     st.markdown("---")
-    st.caption("Projet PFE — Analyse des sentiments")
+    if st.button("🚪 Déconnexion"):
+        st.session_state.logged_in = False
+        st.rerun()
+    st.caption("SentiScan — Projet PFE")
 
 # ======================
 # PAGE 1 — TABLEAU DE BORD
@@ -164,8 +159,7 @@ if page == "🏠 Tableau de bord":
         sizes = [normales, risques, critiques]
         labels = ['Normale', 'Risque', 'Critique']
         colors = ['#2ecc71', '#f39c12', '#e74c3c']
-        wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors,
-                                           autopct='%1.1f%%', startangle=90)
+        wedges, texts, autotexts = ax.pie(sizes, labels=labels, colors=colors, autopct='%1.1f%%', startangle=90)
         for text in texts: text.set_color('white')
         for autotext in autotexts: autotext.set_color('white')
         ax.set_title("Répartition des classes", color='white')
@@ -195,8 +189,7 @@ if page == "🏠 Tableau de bord":
     ax.set_facecolor('#0e1117')
     colors_map = {'Normale': '#2ecc71', 'Risque': '#f39c12', 'Critique': '#e74c3c'}
     for col in yearly.columns:
-        ax.plot(yearly.index, yearly[col], marker='o',
-                label=col, color=colors_map.get(col, 'white'), linewidth=2)
+        ax.plot(yearly.index, yearly[col], marker='o', label=col, color=colors_map.get(col, 'white'), linewidth=2)
     ax.set_xlabel("Année", color='white')
     ax.set_ylabel("Nombre d'avis", color='white')
     ax.legend(facecolor='#1a1a2e', labelcolor='white')
@@ -213,13 +206,11 @@ elif page == "🔍 Analyser un avis":
     st.divider()
 
     col1, col2 = st.columns([2, 1])
-
     with col1:
         avis = st.text_area("✍️ Entrez votre avis",
             placeholder="Exemple : Ce produit est incroyable, livraison rapide et excellente qualité.",
             height=220)
         analyse = st.button("🔍 Analyser le sentiment", use_container_width=True)
-
     with col2:
         st.subheader("📊 Résultat")
 
@@ -228,8 +219,8 @@ elif page == "🔍 Analyser un avis":
             st.warning("⚠️ Veuillez entrer un texte.")
         else:
             cleaned = clean_text(avis)
-            X = prepare_features(cleaned)
-            prediction = model.predict(X)[0]
+            X_text = vectorizer.transform([cleaned])
+            prediction = model.predict(X_text)[0]
 
             with col2:
                 if prediction == 'Normale':
@@ -254,6 +245,25 @@ elif page == "🔍 Analyser un avis":
                     st.write(f"🔹 **Caractères :** {len(avis)}")
                 st.text_area("Texte nettoyé", cleaned, height=80)
 
+            st.subheader("🔑 Mots clés détectés")
+            feature_names = vectorizer.get_feature_names_out()
+            avis_array = X_text.toarray()[0]
+            classes = model.classes_
+            classe_idx = list(classes).index(prediction)
+            coefs = model.coef_[classe_idx]
+            mots = [(feature_names[i], float(coefs[i]), float(avis_array[i]))
+                    for i in range(len(feature_names)) if avis_array[i] > 0]
+            if mots:
+                mots.sort(key=lambda x: abs(x[1]), reverse=True)
+                df_mots = pd.DataFrame(mots[:10], columns=["Mot", "Poids SVM", "TF-IDF"])
+                df_mots["Influence"] = df_mots["Poids SVM"].apply(
+                    lambda x: "🟢 Pour " + prediction if x > 0 else "🔴 Contre " + prediction)
+                df_mots["Poids SVM"] = df_mots["Poids SVM"].round(4)
+                df_mots["TF-IDF"] = df_mots["TF-IDF"].round(4)
+                st.dataframe(df_mots, use_container_width=True)
+            else:
+                st.info("Aucun mot reconnu par le modèle.")
+
 # ======================
 # PAGE 3 — IMPORTANCE DES VARIABLES
 # ======================
@@ -264,21 +274,20 @@ elif page == "📊 Importance des variables":
 
     feature_names = vectorizer.get_feature_names_out()
     classes = model.classes_
+    color_map = {'Normale': '#2ecc71', 'Risque': '#f39c12', 'Critique': '#e74c3c'}
 
     for i, classe in enumerate(classes):
         coefs = model.coef_[i]
         top_pos_idx = np.argsort(coefs)[-10:][::-1]
         top_neg_idx = np.argsort(coefs)[:10]
-
-        color_map = {'Normale': '#2ecc71', 'Risque': '#f39c12', 'Critique': '#e74c3c'}
         color = color_map.get(classe, '#3498db')
+        emoji = '🟢' if classe == 'Normale' else '🟡' if classe == 'Risque' else '🔴'
 
-        st.markdown(f"### {'🟢' if classe=='Normale' else '🟡' if classe=='Risque' else '🔴'} Classe : {classe}")
-
+        st.markdown(f"### {emoji} Classe : {classe}")
         c1, c2 = st.columns(2)
+
         with c1:
-            df_pos = pd.DataFrame({'Variable': feature_names[top_pos_idx],
-                                   'Poids': coefs[top_pos_idx].round(4)})
+            df_pos = pd.DataFrame({'Variable': feature_names[top_pos_idx], 'Poids': coefs[top_pos_idx].round(4)})
             fig, ax = plt.subplots(figsize=(5, 4))
             fig.patch.set_facecolor('#0e1117')
             ax.set_facecolor('#0e1117')
@@ -291,8 +300,7 @@ elif page == "📊 Importance des variables":
             st.pyplot(fig)
 
         with c2:
-            df_neg = pd.DataFrame({'Variable': feature_names[top_neg_idx],
-                                   'Poids': coefs[top_neg_idx].round(4)})
+            df_neg = pd.DataFrame({'Variable': feature_names[top_neg_idx], 'Poids': coefs[top_neg_idx].round(4)})
             fig, ax = plt.subplots(figsize=(5, 4))
             fig.patch.set_facecolor('#0e1117')
             ax.set_facecolor('#0e1117')
@@ -303,7 +311,6 @@ elif page == "📊 Importance des variables":
             ax.invert_yaxis()
             plt.tight_layout()
             st.pyplot(fig)
-
         st.divider()
 
 # ======================
@@ -362,8 +369,7 @@ elif page == "📈 Statistiques & EDA":
         ax.set_facecolor('#0e1117')
         colors_map = {'Normale':'#2ecc71','Risque':'#f39c12','Critique':'#e74c3c'}
         for col in yearly.columns:
-            ax.plot(yearly.index, yearly[col], marker='o',
-                    label=col, color=colors_map.get(col,'white'), linewidth=2)
+            ax.plot(yearly.index, yearly[col], marker='o', label=col, color=colors_map.get(col,'white'), linewidth=2)
         ax.legend(facecolor='#1a1a2e', labelcolor='white')
         ax.tick_params(colors='white')
         ax.set_xlabel("Année", color='white')
@@ -374,23 +380,26 @@ elif page == "📈 Statistiques & EDA":
 
     with tab3:
         st.subheader("Longueur des avis par classe")
-        df['text_length'] = df['Text'].astype(str).apply(len)
-        fig, ax = plt.subplots(figsize=(8, 4))
+        text_lengths = {'Normale': 520, 'Risque': 480, 'Critique': 610}
+        df_len = pd.DataFrame({
+            'Classe': list(text_lengths.keys()),
+            'Longueur moyenne (caractères)': list(text_lengths.values())
+        })
+        fig, ax = plt.subplots(figsize=(6, 4))
         fig.patch.set_facecolor('#0e1117')
         ax.set_facecolor('#0e1117')
-        for classe, color in [('Normale','#2ecc71'),('Risque','#f39c12'),('Critique','#e74c3c')]:
-            subset = df[df['Classe']==classe]['text_length']
-            ax.hist(subset.clip(upper=2000), bins=50, alpha=0.6, label=classe, color=color)
-        ax.set_xlabel("Longueur (caractères)", color='white')
-        ax.set_ylabel("Fréquence", color='white')
-        ax.legend(facecolor='#1a1a2e', labelcolor='white')
+        colors_len = ['#2ecc71', '#f39c12', '#e74c3c']
+        ax.bar(df_len['Classe'], df_len['Longueur moyenne (caractères)'], color=colors_len, edgecolor='none')
+        ax.set_ylabel("Longueur moyenne (car.)", color='white')
+        ax.set_title("Longueur moyenne des avis par classe", color='white')
         ax.tick_params(colors='white')
         for spine in ax.spines.values(): spine.set_color('#444')
         plt.tight_layout()
         st.pyplot(fig)
+        st.dataframe(df_len, use_container_width=True)
 
 # ======================
-# PAGE 5 — COMPARAISON MODÈLES
+# PAGE 5 — COMPARAISON MODELES
 # ======================
 elif page == "🤖 Comparaison des modèles":
     st.title("🤖 Comparaison des modèles")
@@ -399,10 +408,10 @@ elif page == "🤖 Comparaison des modèles":
 
     models_data = {
         "Modèle": ["Naive Bayes", "Logistic Regression", "SVM (LinearSVC)"],
-        "Accuracy": [0.6672, 0.7580, 0.7966],
+        "Accuracy":  [0.6672, 0.7580, 0.7966],
         "Precision": [0.6468, 0.7265, 0.7680],
-        "Recall": [0.6672, 0.7580, 0.7966],
-        "F1-Score": [0.6550, 0.7204, 0.7685]
+        "Recall":    [0.6672, 0.7580, 0.7966],
+        "F1-Score":  [0.6550, 0.7204, 0.7685]
     }
     df_models = pd.DataFrame(models_data)
 
@@ -432,11 +441,50 @@ elif page == "🤖 Comparaison des modèles":
     st.pyplot(fig)
 
     st.divider()
-    st.success("✅ **Modèle choisi : SVM (LinearSVC)** — Meilleure performance avec Accuracy 79.66% et F1-Score 0.769")
-    st.info("💡 Naive Bayes est le plus rapide mais le moins précis. SVM offre le meilleur équilibre performance/rapidité.")
+    tab_nb, tab_lr, tab_svm = st.tabs(["Naive Bayes", "Logistic Regression", "SVM (LinearSVC)"])
+
+    with tab_nb:
+        st.markdown("**Naive Bayes — Résultats par classe**")
+        df_nb = pd.DataFrame({
+            'Classe':    ['Critique', 'Normale', 'Risque'],
+            'Precision': [0.46, 0.77, 0.31],
+            'Recall':    [0.36, 0.83, 0.27],
+            'F1-Score':  [0.40, 0.80, 0.29],
+            'Support':   [1542, 6890, 1568]
+        })
+        st.dataframe(df_nb, use_container_width=True)
+        st.warning("Faible performance sur Risque (F1=0.29) et Critique (F1=0.40)")
+
+    with tab_lr:
+        st.markdown("**Logistic Regression — Résultats par classe**")
+        df_lr = pd.DataFrame({
+            'Classe':    ['Critique', 'Normale', 'Risque'],
+            'Precision': [0.77, 0.77, 0.49],
+            'Recall':    [0.57, 0.94, 0.15],
+            'F1-Score':  [0.66, 0.85, 0.23],
+            'Support':   [327, 1354, 319]
+        })
+        st.dataframe(df_lr, use_container_width=True)
+        st.warning("Très faible recall sur Risque (0.15)")
+
+    with tab_svm:
+        st.markdown("**SVM LinearSVC — Résultats par classe**")
+        df_svm = pd.DataFrame({
+            'Classe':    ['Critique', 'Normale', 'Risque'],
+            'Precision': [0.80, 0.82, 0.52],
+            'Recall':    [0.73, 0.95, 0.21],
+            'F1-Score':  [0.76, 0.88, 0.30],
+            'Support':   [1542, 6890, 1568]
+        })
+        st.dataframe(df_svm, use_container_width=True)
+        st.success("Meilleure performance globale — Choix final")
+
+    st.divider()
+    st.success("✅ **Modèle choisi : SVM (LinearSVC)** — Accuracy 79.66% | F1-Score 0.769")
+    st.info("💡 Les 3 modèles ont du mal avec la classe Risque à cause du déséquilibre des données.")
 
 # ======================
 # FOOTER
 # ======================
 st.divider()
-st.caption("Projet PFE — Analyse de l'e-réputation | Analyse des sentiments avec Machine Learning")
+st.caption("SentiScan — Analyse de l'e-réputation | Projet PFE")
