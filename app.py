@@ -23,9 +23,10 @@ st.set_page_config(
 def check_login():
     if 'logged_in' not in st.session_state:
         st.session_state.logged_in = False
+        st.session_state.role = None
+
     if not st.session_state.logged_in:
         st.title("🔐 Connexion — SentiScan")
-        st.markdown("Veuillez vous connecter pour accéder au dashboard.")
         st.divider()
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
@@ -33,8 +34,13 @@ def check_login():
             password = st.text_input("🔒 Mot de passe", type="password")
             login_btn = st.button("Se connecter", use_container_width=True)
             if login_btn:
-                if username == "marwayasmine" and password == "pfe":
+                if username == "marwa" and password == "pfe":
                     st.session_state.logged_in = True
+                    st.session_state.role = "admin"
+                    st.rerun()
+                elif username == "user" and password == "user":
+                    st.session_state.logged_in = True
+                    st.session_state.role = "visiteur"
                     st.rerun()
                 else:
                     st.error("❌ Nom d'utilisateur ou mot de passe incorrect")
@@ -103,25 +109,35 @@ def prepare_features(text):
 with st.sidebar:
     st.markdown("## 🔍 SentiScan")
     st.markdown("---")
-    page = st.radio("Navigation", [
-        "🏠 Tableau de bord",
-        "🔍 Analyser un avis",
-        "📊 Importance des variables",
-        "📈 Statistiques & EDA",
-        "🤖 Comparaison des modèles"
-    ])
+    
+    if st.session_state.role == "admin":
+        pages = [
+            "🏠 Tableau de bord",
+            "🔍 Analyser un avis",
+            "📊 Importance des variables",
+            "📈 Statistiques & EDA",
+            "🤖 Comparaison des modèles"
+        ]
+    else:
+        pages = ["🔍 Analyser un avis"]
+    
+    page = st.radio("Navigation", pages)
     st.markdown("---")
-    total = len(df)
-    nor_pct = round(len(df[df['Classe']=='Normale']) / total * 100, 1)
-    ris_pct = round(len(df[df['Classe']=='Risque']) / total * 100, 1)
-    cri_pct = round(len(df[df['Classe']=='Critique']) / total * 100, 1)
-    st.markdown(f"**Total avis :** {total:,}")
-    st.markdown(f"🟢 Normale : **{nor_pct}%**")
-    st.markdown(f"🟡 Risque : **{ris_pct}%**")
-    st.markdown(f"🔴 Critique : **{cri_pct}%**")
+    
+    if st.session_state.role == "admin":
+        st.markdown("👑 **Admin**")
+        total = len(df)
+        st.markdown(f"**Total avis :** {total:,}")
+        st.markdown(f"🟢 Normale : **{round(len(df[df['Classe']=='Normale'])/total*100,1)}%**")
+        st.markdown(f"🟡 Risque : **{round(len(df[df['Classe']=='Risque'])/total*100,1)}%**")
+        st.markdown(f"🔴 Critique : **{round(len(df[df['Classe']=='Critique'])/total*100,1)}%**")
+    else:
+        st.markdown("👤 **Visiteur**")
+    
     st.markdown("---")
     if st.button("🚪 Déconnexion"):
         st.session_state.logged_in = False
+        st.session_state.role = None
         st.rerun()
     st.caption("SentiScan — Projet PFE")
 
